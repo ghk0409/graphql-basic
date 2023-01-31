@@ -1,5 +1,5 @@
 import { ApolloServer, gql } from "apollo-server";
-import { NoUnusedVariablesRule } from "graphql";
+import fetch from "node-fetch";
 
 // GET /title
 // GET /text
@@ -53,6 +53,14 @@ const typeDefs = gql`
         author: User!
     }
     type Query {
+        """
+        전체 영화 정보 호출 API
+        """
+        allMovies: [Movie!]!
+        """
+        특정 영화 정보 호출 API (movie id)
+        """
+        movie(id: String!): Movie
         allUsers: [User!]!
         allTweets: [Tweet!]!
         tweet(id: ID!): Tweet
@@ -70,6 +78,33 @@ const typeDefs = gql`
         """
         deleteTweet(id: ID!): Boolean!
     }
+
+    """
+    Movie 타입 설정
+    """
+    type Movie {
+        id: Int!
+        url: String!
+        imdb_code: String!
+        title: String!
+        title_english: String!
+        title_long: String!
+        slug: String!
+        year: Int!
+        rating: Float!
+        runtime: Float!
+        genres: [String]!
+        summary: String
+        description_full: String!
+        synopsis: String
+        yt_trailer_code: String!
+        language: String!
+        background_image: String!
+        background_image_original: String!
+        small_cover_image: String!
+        medium_cover_image: String!
+        large_cover_image: String!
+    }
 `;
 
 // resolver 선언: 데이터베이스에 액세스한 다음 실행되는 함수(return)
@@ -86,6 +121,20 @@ const resolvers = {
         },
         allUsers(root) {
             return users;
+        },
+        // 전체 Movie 정보 API (REST API를 GraphQL API로 변환)
+        allMovies() {
+            return fetch("https://yts.mx/api/v2/list_movies.json")
+                .then((res) => res.json())
+                .then((json) => json.data.movies);
+        },
+        // 특정 Movie 정보 API (movie id 해당 정보)
+        movie(_, { id }) {
+            return fetch(
+                `https://yts.mx/api/v2/movie_details.json?movie_id=${id}`
+            )
+                .then((res) => res.json())
+                .then((json) => json.data.movie);
         },
     },
     Mutation: {
